@@ -11,9 +11,15 @@ jobs:
         with:
           submodules: true
 
-      - uses: krdlab/setup-haxe@master
-        with:
-          haxe-version: 4.3.7
+      # krdlab/setup-haxe doesn't support arm64 linux
+      # so this is our workaround for now
+      - name: Install Haxe
+        run: |
+          sudo add-apt-repository ppa:haxe/releases -y
+          sudo apt-get update
+          sudo apt-get install -y haxe
+          mkdir $HOME/haxelib
+          haxelib setup $HOME/haxelib
 
       - name: Set HAXEPATH
         run: |
