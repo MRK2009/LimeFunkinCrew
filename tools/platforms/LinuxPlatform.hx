@@ -397,18 +397,13 @@ class LinuxPlatform extends PlatformTarget
 	{
 		// var project = project.clone ();
 
-		if(targetFlags.exists('rpi'))
-		{
-			project.haxedefs.set("rpi", 1);
-		}
-
 		var context = project.templateContext;
 
 		context.NEKO_FILE = targetDirectory + "/obj/ApplicationMain.n";
 		context.NODE_FILE = targetDirectory + "/bin/ApplicationMain.js";
 		context.HL_FILE = targetDirectory + "/obj/ApplicationMain" + (project.defines.exists("hlc") ? ".c" : ".hl");
 		context.CPP_DIR = targetDirectory + "/obj/";
-		context.BUILD_DIR = project.app.path + "/linux" + (is64 ? "64" : "") + (isRaspberryPi ? "-rpi" : "");
+		context.BUILD_DIR = project.app.path + "/linux" + (is64 ? "64" : "");
 		context.WIN_ALLOW_SHADERS = false;
 
 		return context;
@@ -454,59 +449,37 @@ class LinuxPlatform extends PlatformTarget
 	{
 		var commands = [];
 
-		if (System.hostArchitecture == ARM64 )
-		{
-			commands.push([
-				"-Dlinux",
-				"-Drpi",
-				"-Dtoolchain=linux",
-				"-DBINDIR=LinuxArm64",
-				"-DHXCPP_ARM64",
-				"-DCXX=aarch64-linux-gnu-g++",
-				"-DHXCPP_STRIP=aarch64-linux-gnu-strip",
-				"-DHXCPP_AR=aarch64-linux-gnu-ar",
-				"-DHXCPP_RANLIB=aarch64-linux-gnu-ranlib"
-			]);
-		}
-		else if (System.hostArchitecture == ARMV7)
-		{
-			commands.push([
-				"-Dlinux",
-				"-Drpi",
-				"-Dtoolchain=linux",
-				"-DBINDIR=LinuxArm",
-				"-DHXCPP_M32",
-				"-DCXX=arm-linux-gnueabihf-g++",
-				"-DHXCPP_STRIP=arm-linux-gnueabihf-strip",
-				"-DHXCPP_AR=arm-linux-gnueabihf-ar",
-				"-DHXCPP_RANLIB=arm-linux-gnueabihf-ranlib"
-			]);
-		}
-		else if (targetFlags.exists("hl") && System.hostArchitecture == X64)
-		{
-			// TODO: Support single binary
-			commands.push(["-Dlinux", "-DHXCPP_M64", "-Dhashlink"]);
-		}
-		else
-		{
-			var x86_64:Bool = targetFlags.exists("64") || targetFlags.exists("x86_64");
-			var x86_32:Bool = targetFlags.exists("32") || targetFlags.exists("x86_32");
+		var armv7:Bool = targetFlags.exists("armv7");
+		var arm64:Bool = targetFlags.exists("arm64");
+		var x86_64:Bool = targetFlags.exists("64") || targetFlags.exists("x86_64");
+		var x86_32:Bool = targetFlags.exists("32") || targetFlags.exists("x86_32");
 
-			if (!x86_64 && !x86_32)
-			{
-				x86_64 = System.hostArchitecture == X64;
-				x86_32 = System.hostArchitecture == X86;
-			}
+		if (!armv7 && !arm64 && !x86_64 && !x86_32)
+		{
+			arm64 = System.hostArchitecture == ARM64;
+			arm64 = System.hostArchitecture == ARMV7;
+			x86_64 = System.hostArchitecture == X64;
+			x86_32 = System.hostArchitecture == X86;
+		}
 
-			if (x86_64)
-			{
-				commands.push(["-Dlinux", "-DHXCPP_M64"]);
-			}
+		if (arm64)
+		{
+			commands.push(["-Dlinux", "-DHXCPP_ARM64"]);
+		}
 
-			if (x86_32)
-			{
-				commands.push(["-Dlinux", "-DHXCPP_M32"]);
-			}
+		if (armv7)
+		{
+			commands.push(["-Dlinux", "-DHXCPP_ARMV7"]);
+		}
+
+		if (x86_64)
+		{
+			commands.push(["-Dlinux", "-DHXCPP_M64"]);
+		}
+
+		if (x86_32)
+		{
+			commands.push(["-Dlinux", "-DHXCPP_M32"]);
 		}
 
 		if (targetFlags.exists("hl"))
