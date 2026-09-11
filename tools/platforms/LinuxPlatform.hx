@@ -29,6 +29,7 @@ class LinuxPlatform extends PlatformTarget
 	private var applicationDirectory:String;
 	private var executablePath:String;
 	private var is64:Bool;
+	private var isArm:Bool;
 	private var targetType:String;
 
 	public function new(command:String, _project:HXProject, targetFlags:Map<String, String>)
@@ -121,12 +122,18 @@ class LinuxPlatform extends PlatformTarget
 
 		for (architecture in project.architectures)
 		{
-			if (!targetFlags.exists("32") && !targetFlags.exists("x86_32") && (architecture == Architecture.X64 || architecture == Architecture.ARM64))
+			if (!targetFlags.exists("32") && !targetFlags.exists("x86_32") && architecture == Architecture.X64)
 			{
 				is64 = true;
 			}
-			else if (architecture == Architecture.ARMV7)
+			else if (targetFlags.exists("arm64") || architecture == Architecture.ARM64)
 			{
+				isArm = true;
+				is64 = true;
+			}
+			else if (targetFlags.exists("armv7") || architecture == Architecture.ARMV7)
+			{
+				isArm = true;
 				is64 = false;
 			}
 		}
@@ -266,7 +273,7 @@ class LinuxPlatform extends PlatformTarget
 
 			if (is64)
 			{
-				if (System.hostArchitecture == ARM64)
+				if (isArm)
 				{
 					haxeArgs.push("-D");
 					haxeArgs.push("HXCPP_ARM64");
@@ -281,9 +288,18 @@ class LinuxPlatform extends PlatformTarget
 			}
 			else
 			{
-				haxeArgs.push("-D");
-				haxeArgs.push("HXCPP_M32");
-				flags.push("-DHXCPP_M32");
+				if (isArm)
+				{
+					haxeArgs.push("-D");
+					haxeArgs.push("HXCPP_ARMV7");
+					flags.push("-DHXCPP_ARMV7");
+				}
+				else
+				{
+					haxeArgs.push("-D");
+					haxeArgs.push("HXCPP_M32");
+					flags.push("-DHXCPP_M32");
+				}
 			}
 
 			if (project.target != System.hostPlatform)
@@ -403,7 +419,7 @@ class LinuxPlatform extends PlatformTarget
 		context.NODE_FILE = targetDirectory + "/bin/ApplicationMain.js";
 		context.HL_FILE = targetDirectory + "/obj/ApplicationMain" + (project.defines.exists("hlc") ? ".c" : ".hl");
 		context.CPP_DIR = targetDirectory + "/obj/";
-		context.BUILD_DIR = project.app.path + "/linux" + (is64 ? "64" : "");
+		context.BUILD_DIR = project.app.path + "/linux" + (isArm ? "arm" : "") + (is64 ? "64" : "");
 		context.WIN_ALLOW_SHADERS = false;
 
 		return context;
@@ -449,8 +465,8 @@ class LinuxPlatform extends PlatformTarget
 	{
 		var commands = [];
 
-		var armv7:Bool = targetFlags.exists("armv7");
 		var arm64:Bool = targetFlags.exists("arm64");
+		var armv7:Bool = targetFlags.exists("armv7");
 		var x86_64:Bool = targetFlags.exists("64") || targetFlags.exists("x86_64");
 		var x86_32:Bool = targetFlags.exists("32") || targetFlags.exists("x86_32");
 
